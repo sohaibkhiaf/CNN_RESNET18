@@ -219,18 +219,18 @@ class ResNet18(nn.Module):
              num_classes: int= 3):
     super().__init__()
 
-    self.in_channels = 64
+    self.in_channels = 16
 
     self.conv1 = nn.Conv2d(
         in_channels=color_channels,
-        out_channels=64,
+        out_channels=16,
         kernel_size=7,
         stride=2,
         padding=3,
         bias=False
     )
 
-    self.bn1 = nn.BatchNorm2d(64)
+    self.bn1 = nn.BatchNorm2d(16)
     self.relu = nn.ReLU(inplace=True)
     self.maxpool = nn.MaxPool2d(
         kernel_size=3,
@@ -240,28 +240,28 @@ class ResNet18(nn.Module):
 
     self.layer1 = self._make_layer(
         block=BasicBlock,
-        out_channels=64,
+        out_channels=16,
         num_blocks=2,
         stride=1
     )
 
     self.layer2 = self._make_layer(
         block=BasicBlock,
-        out_channels= 64 * 2,
+        out_channels= 32,
         num_blocks=2,
         stride=2
     )
 
     self.layer3 = self._make_layer(
         block=BasicBlock,
-        out_channels= 64 * 4,
+        out_channels= 64 ,
         num_blocks=2,
         stride=2
     )
 
     self.layer4 = self._make_layer(
         block=BasicBlock,
-        out_channels= 64 * 8,
+        out_channels= 128,
         num_blocks=2,
         stride=2
     )
@@ -269,7 +269,7 @@ class ResNet18(nn.Module):
     self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
 
     self.classifier = nn.Linear(
-        in_features= 64 * 8,
+        in_features= 128 ,
         out_features=num_classes
     )
 
@@ -280,11 +280,9 @@ class ResNet18(nn.Module):
         block( self.in_channels, out_channels, stride)
     )
 
-    print(f"before self.in_channels = out_channels: self.in_channels={self.in_channels} , out_channels= {out_channels}")
     self.in_channels = out_channels
-    print(f"self.in_channels = out_channels: {self.in_channels} = {out_channels}")
 
-    for _ in range(1, num_blocks):
+    for b in range(1, num_blocks):
       layers.append(
           block(self.in_channels,out_channels)
       )
@@ -319,7 +317,7 @@ model.to(device)
 # loss function and optimizer ==================
 loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(params=model.parameters(),
-                            lr=0.1,
+                            lr=0.01,
                              momentum=0.9,
                             weight_decay=5e-4)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer=optimizer, step_size=30,gamma=0.1)
@@ -357,7 +355,7 @@ def train_step(model: torch.nn.Module,
 
     # calculate loss
     loss = loss_fn(y_pred, y_batch)
-    train_loss += loss
+    train_loss += loss.item()
     train_acc += accuracy_fn(y_true=y_batch, y_pred=y_pred.argmax(dim=1))
 
     # optimizer zero grad
@@ -372,7 +370,7 @@ def train_step(model: torch.nn.Module,
   # batch loss = mean(batch samples)
   train_loss /= len(dataloader)
   train_acc /= len(dataloader)
-  print(f"Train loss= {train_loss:.5f} | Train acc= {train_acc:.2f}%")
+  return train_loss, train_acc
 
 
 # test step function  ========================
@@ -402,8 +400,7 @@ def test_step(model: torch.nn.Module,
     # calculate the test loss and acc average per batch
     test_loss /= len(dataloader)
     test_acc /= len(dataloader)
-
-  print(f"Test loss= {test_loss:.5f}, Test acc= {test_acc:.2f}%")
+  return test_loss, test_acc
 
 
 # training loop ====================================
@@ -412,21 +409,33 @@ torch.cuda.manual_seed(42)
 
 train_time_start = timer()
 
-epochs = 16
+epochs = 25
+
+train_loss_values, test_loss_values = [], []
+train_acc_values, test_acc_values = [], []
 
 for epoch in range(epochs):
   print(f"Epoch: {epoch}\n--------")
-  train_step(model=model,
+  epoch_train_loss, epoch_train_acc = train_step(model=model,
              dataloader=train_dataloader,
              loss_fn=loss_fn,
              optimizer=optimizer,
              accuracy_fn=accuracy_fn,
              device=device)
-  test_step(model=model,
+  print(f"Train loss= {epoch_train_loss:.5f} | Train acc= {epoch_train_acc:.2f}%")
+  epoch_test_loss, epoch_test_acc = test_step(model=model,
             dataloader=test_dataloader,
             loss_fn=loss_fn,
             accuracy_fn=accuracy_fn,
             device=device)
+  print(f"Train loss= {epoch_test_loss:.5f} | Train acc= {epoch_test_acc:.2f}%")
+
+  # append values for plotting
+  train_loss_values.append(epoch_train_loss)
+  train_acc_values.append(epoch_train_acc)
+
+  test_loss_values.append(epoch_test_loss)
+  test_acc_values.append(epoch_test_acc)
 
   scheduler.step()
 
@@ -437,6 +446,37 @@ print(f"Total train time: {total_train_time:.2f} seconds.")
 print("\n\n")
 
 
+# plot loss and accuracy function ======================
+def plot_results(train_loss_values,
+                      test_loss_values,
+                      train_acc_values,
+                      test_acc_values,
+                      epochs):
+  plt.figure(figsize = (20, 6))
+  # loss
+  plt.subplot(1, 2, 2)
+  plt.plot(train_loss_values, label='Train loss')
+  plt.plot(test_loss_values, label='Test loss')
+  plt.title("Loss")
+  plt.xticks(range(0, epochs+1, 1))
+  plt.legend()
+  plt.grid()
+  # accuracy
+  plt.subplot(1, 2, 1)
+  plt.plot(train_acc_values, label='Train Accuracy')
+  plt.plot(test_acc_values, label='Test Accuracy')
+  plt.title("Accuracy")
+  plt.xticks(range(0, epochs+1, 1))
+  plt.legend()
+  plt.grid()
+
+  plt.show()
+
+plot_results(train_loss_values,
+                  test_loss_values,
+                  train_acc_values,
+                  test_acc_values,
+                  epochs= epochs)
 
 # model evaluation function =====================
 def eval_model(model: torch.nn.Module,
@@ -502,7 +542,6 @@ model_name, model_loss, model_acc = eval_model(model=model,
 
 print(f"Model results:\n Model name: {model.__class__.__name__}\n Model loss: {model_loss:.4f} \n Model accuracy: {model_acc:.2f}%")
 print("\n\n")
-
 
 
 # plot predictions of some samples =======================================
