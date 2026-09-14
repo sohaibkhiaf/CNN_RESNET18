@@ -38,15 +38,15 @@ print("\n\n")
 
 
 # walk through dataset directory ==========================
-IMAGE_PATH= Path("arm_dataset/")
+IMAGE_PATH= Path("weapon_dataset/")
 def walk_through_dir(dir_path):
     for dirpath, dirnames, filenames in os.walk(dir_path):
         print(f"There are {len(dirnames)} directories, {len(filenames)} images in {dirpath}")
 
 walk_through_dir(dir_path=IMAGE_PATH)
 
-TRAIN_DIR = "arm_dataset/train"
-TEST_DIR = "arm_dataset/test"
+TRAIN_DIR = "weapon_dataset/train"
+TEST_DIR = "weapon_dataset/test"
 print("\n\n")
 
 
@@ -567,7 +567,7 @@ MODEL_PATH.mkdir(parents=True,
                  exist_ok=True)
 
 # create model save
-MODEL_NAME= "arm_vgg.pt"
+MODEL_NAME= "model_state_dict.pt"
 MODEL_SAVE_PATH= MODEL_PATH/ MODEL_NAME
 
 # save model state dict

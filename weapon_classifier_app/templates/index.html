@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Arm Classifier</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: Arial, Helvetica, sans-serif;
+
+            background:
+                radial-gradient(
+                    circle at top left,
+                    #263b68 0%,
+                    transparent 35%
+                ),
+                radial-gradient(
+                    circle at bottom right,
+                    #40245f 0%,
+                    transparent 35%
+                ),
+                #0b1020;
+
+            color: #ffffff;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            padding: 30px;
+        }
+
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+
+            background: rgba(255, 255, 255, 0.07);
+
+            border: 1px solid rgba(255, 255, 255, 0.12);
+
+            border-radius: 24px;
+
+            padding: 40px;
+
+            backdrop-filter: blur(20px);
+
+            box-shadow:
+                0 25px 70px rgba(0, 0, 0, 0.45);
+        }
+
+
+        .header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+
+        .icon {
+            width: 70px;
+            height: 70px;
+
+            margin: 0 auto 20px;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            border-radius: 20px;
+
+            font-size: 32px;
+
+            background: rgba(255, 255, 255, 0.1);
+
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+
+        h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+
+        .subtitle {
+            color: #aab3c7;
+            font-size: 16px;
+        }
+
+
+        .upload-area {
+            border: 2px dashed rgba(255, 255, 255, 0.25);
+
+            border-radius: 18px;
+
+            padding: 45px 25px;
+
+            text-align: center;
+
+            transition: 0.25s;
+
+            cursor: pointer;
+
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+
+        .upload-area:hover {
+            border-color: #7c8cff;
+            background: rgba(124, 140, 255, 0.08);
+        }
+
+
+        .upload-icon {
+            font-size: 45px;
+            margin-bottom: 15px;
+        }
+
+
+        .upload-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+
+        .upload-description {
+            color: #8993aa;
+            font-size: 14px;
+        }
+
+
+        #image {
+            display: none;
+        }
+
+
+        .file-name {
+            margin-top: 15px;
+            color: #9da9ff;
+            font-size: 14px;
+        }
+
+
+        .button {
+            width: 100%;
+
+            margin-top: 20px;
+
+            padding: 15px;
+
+            border: none;
+
+            border-radius: 12px;
+
+            background: linear-gradient(
+                135deg,
+                #667eea,
+                #764ba2
+            );
+
+            color: white;
+
+            font-size: 16px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+            transition: 0.25s;
+
+            box-shadow:
+                0 10px 25px rgba(102, 126, 234, 0.25);
+        }
+
+
+        .button:hover {
+            transform: translateY(-2px);
+
+            box-shadow:
+                0 15px 30px rgba(102, 126, 234, 0.35);
+        }
+
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+
+        .error {
+            margin-top: 20px;
+
+            padding: 14px;
+
+            border-radius: 10px;
+
+            background: rgba(255, 70, 70, 0.1);
+
+            border: 1px solid rgba(255, 70, 70, 0.3);
+
+            color: #ff8c8c;
+
+            text-align: center;
+        }
+
+
+        .result {
+            margin-top: 35px;
+
+            padding: 25px;
+
+            border-radius: 18px;
+
+            background: rgba(255, 255, 255, 0.05);
+
+            border: 1px solid rgba(255, 255, 255, 0.1);
+
+            text-align: center;
+        }
+
+
+        .result-title {
+            color: #8f9ab3;
+
+            font-size: 13px;
+
+            text-transform: uppercase;
+
+            letter-spacing: 2px;
+
+            margin-bottom: 10px;
+        }
+
+
+        .prediction {
+            font-size: 30px;
+
+            font-weight: bold;
+
+            margin-bottom: 18px;
+
+            text-transform: capitalize;
+        }
+
+
+        .confidence-label {
+            display: flex;
+
+            justify-content: space-between;
+
+            color: #aab3c7;
+
+            font-size: 14px;
+
+            margin-bottom: 8px;
+        }
+
+
+        .progress {
+            width: 100%;
+
+            height: 10px;
+
+            background: rgba(255, 255, 255, 0.1);
+
+            border-radius: 10px;
+
+            overflow: hidden;
+        }
+
+
+        .progress-bar {
+            height: 100%;
+
+            width: {{ confidence or 0 }}%;
+
+            background: linear-gradient(
+                90deg,
+                #667eea,
+                #a855f7
+            );
+
+            border-radius: 10px;
+
+            transition: width 0.8s ease;
+        }
+
+
+        .preview {
+            margin-top: 25px;
+
+            display: flex;
+
+            justify-content: center;
+        }
+
+
+        .preview img {
+            max-width: 100%;
+
+            max-height: 400px;
+
+            border-radius: 16px;
+
+            object-fit: contain;
+
+            border: 1px solid rgba(255, 255, 255, 0.15);
+
+            box-shadow:
+                0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
+
+        .classes {
+            margin-top: 30px;
+
+            display: grid;
+
+            grid-template-columns: repeat(3, 1fr);
+
+            gap: 10px;
+        }
+
+
+        .class-card {
+            padding: 14px;
+
+            text-align: center;
+
+            border-radius: 12px;
+
+            background: rgba(255, 255, 255, 0.04);
+
+            border: 1px solid rgba(255, 255, 255, 0.08);
+
+            color: #aab3c7;
+
+            font-size: 13px;
+        }
+
+
+        .footer {
+            margin-top: 30px;
+
+            text-align: center;
+
+            color: #626c82;
+
+            font-size: 12px;
+        }
+
+
+        @media (max-width: 600px) {
+
+            body {
+                padding: 15px;
+            }
+
+            .container {
+                padding: 25px 20px;
+            }
+
+            h1 {
+                font-size: 28px;
+            }
+
+            .classes {
+                grid-template-columns: 1fr;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+    <div class="container">
+
+        <div class="header">
+
+            <div class="icon">
+                🧠
+            </div>
+
+            <h1>Arm Classifier</h1>
+
+            <p class="subtitle">
+                Upload an image and let the AI model classify it
+            </p>
+
+        </div>
+
+
+        <form method="POST" enctype="multipart/form-data">
+
+            <label for="image">
+
+                <div class="upload-area">
+
+                    <div class="upload-icon">
+                        📷
+                    </div>
+
+                    <div class="upload-title">
+                        Choose an image
+                    </div>
+
+                    <div class="upload-description">
+                        Click here to upload a JPG, JPEG or PNG image
+                    </div>
+
+                    <div class="file-name" id="file-name"></div>
+
+                </div>
+
+            </label>
+
+
+            <input
+                type="file"
+                id="image"
+                name="image"
+                accept="image/png, image/jpeg, image/jpg"
+                required
+            >
+
+
+            <button
+                type="submit"
+                class="button"
+            >
+                🔍 Classify Image
+            </button>
+
+        </form>
+
+
+        {% if error %}
+
+            <div class="error">
+                {{ error }}
+            </div>
+
+        {% endif %}
+
+
+        {% if image_path %}
+
+            <div class="preview">
+
+                <img
+                    src="/{{ image_path }}"
+                    alt="Uploaded image"
+                >
+
+            </div>
+
+        {% endif %}
+
+
+        {% if prediction %}
+
+            <div class="result">
+
+                <div class="result-title">
+                    Prediction
+                </div>
+
+                <div class="prediction">
+                    {{ prediction }}
+                </div>
+
+
+                <div class="confidence-label">
+
+                    <span>
+                        Confidence
+                    </span>
+
+                    <span>
+                        {{ "%.2f"|format(confidence) }}%
+                    </span>
+
+                </div>
+
+
+                <div class="progress">
+
+                    <div class="progress-bar"></div>
+
+                </div>
+
+            </div>
+
+        {% endif %}
+
+
+        <div class="classes">
+
+            <div class="class-card">
+                💥 Hand Grenade
+            </div>
+
+            <div class="class-card">
+                🛡️ Self Defence
+            </div>
+
+            <div class="class-card">
+                🔫 Semi Auto
+            </div>
+
+        </div>
+
+
+        <div class="footer">
+            Powered by PyTorch & Flask
+        </div>
+
+    </div>
+
+
+    <script>
+
+        const imageInput = document.getElementById("image");
+
+        const fileName = document.getElementById("file-name");
+
+
+        imageInput.addEventListener(
+            "change",
+            function () {
+
+                if (this.files.length > 0) {
+
+                    fileName.textContent =
+                        "Selected: " + this.files[0].name;
+
+                } else {
+
+                    fileName.textContent = "";
+
+                }
+
+            }
+        );
+
+    </script>
+
+</body>
+
+</html>
+
